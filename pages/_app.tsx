@@ -2,7 +2,7 @@ import type { AppProps } from 'next/app'
 import { SocketProvider } from '../contexts/SocketContext'
 import '../styles/globals.css'
 
-export default function App({ Component, pageProps }: AppProps) {
+export default function MyApp({ Component, pageProps }: AppProps) {
   return (
     <SocketProvider>
       <Component {...pageProps} />
