@@ -8,18 +8,8 @@ export const config = {
   },
 }
 
-interface NextApiResponseServerIO extends NextApiResponse {
-  socket: {
-    server: NetServer & {
-      io: SocketIOServer
-    }
-  }
-}
-
-const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
-  if (res.socket.server.io) {
-    console.log('Socket is already running')
-  } else {
+const SocketHandler = (req: NextApiRequest, res: NextApiResponse) => {
+  if (!res.socket.server.io) {
     console.log('Socket is initializing')
     const io = new SocketIOServer(res.socket.server, {
       path: '/api/socket',
@@ -52,6 +42,8 @@ const SocketHandler = (req: NextApiRequest, res: NextApiResponseServerIO) => {
         console.log('Usuario desconectado:', socket.id)
       })
     })
+  } else {
+    console.log('Socket is already running')
   }
   res.end()
 }
