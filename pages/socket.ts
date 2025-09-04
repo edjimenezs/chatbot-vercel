@@ -1,3 +1,4 @@
+
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { Server as IOServer } from 'socket.io'
 import { Server as HTTPServer } from 'http'
@@ -16,7 +17,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
   if (!server.io) {
     const io = new IOServer(server, {
       path: '/api/socket',
-      transports: ['websocket'], // clave en Vercel
+      transports: ['websocket'],
     })
     server.io = io
 
@@ -28,4 +29,5 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
 
   res.end()
 }
+
 
