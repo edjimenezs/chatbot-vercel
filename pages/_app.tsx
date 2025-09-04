@@ -1,11 +1,11 @@
 import type { AppProps } from 'next/app'
-import { SocketProvider } from '../contexts/SocketContext'
+import { SocketContextProvider } from '../contexts/SocketContext'
 import '../styles/globals.css'
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <SocketProvider>
+    <SocketContextProvider>
       <Component {...pageProps} />
-    </SocketProvider>
+    </SocketContextProvider>
   )
 }
