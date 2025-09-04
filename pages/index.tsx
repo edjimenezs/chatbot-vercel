@@ -54,7 +54,7 @@ export default function Home() {
     }
   }, [socket])
 
-  const sendMessage = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputMessage.trim()) return
 
@@ -150,7 +150,8 @@ export default function Home() {
 
             {/* Input Area */}
             <div className="border-t p-4">
-              <form onSubmit={sendMessage} className="flex space-x-2">
+              {/* 👇 aquí también cambia el nombre */}
+              <form onSubmit={handleSubmit} className="flex space-x-2">
                 <input
                   type="text"
                   value={inputMessage}
@@ -174,3 +175,5 @@ export default function Home() {
     </>
   )
 }
+
+
