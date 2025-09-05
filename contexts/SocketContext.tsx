@@ -1,37 +1,40 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { io, Socket } from 'socket.io-client'
+import { createContext, useContext, useEffect, useState } from 'react'
 
 type Ctx = {
-  socket: Socket | null
-  sendMessage: (text: string) => Promise<string>
+  socket: WebSocket | null
+  sendMessage: (text: string) => void
 }
 
-const Ctx = createContext<Ctx>({ socket: null, sendMessage: async () => '' })
+const SocketCtx = createContext<Ctx>({
+  socket: null,
+  sendMessage: () => {}
+})
 
-export function SocketContextProvider({ children }: { children: ReactNode }) {
-  const [socket, setSocket] = useState<Socket | null>(null)
+export function SocketContextProvider({ children }: { children: React.ReactNode }) {
+  const [socket, setSocket] = useState<WebSocket | null>(null)
 
   useEffect(() => {
-    const s = io(window.location.origin, {
-      path: '/api/socket',
-      transports: ['websocket'], // importante
-    })
-    setSocket(s)
-    return () => s.close()
+    // cambia http(s) por ws(s) para conectarse al endpoint
+    const url = `${location.origin.replace(/^http/, 'ws')}/api/socket`
+    const ws = new WebSocket(url)
+
+    setSocket(ws)
+
+    return () => ws.close()
   }, [])
 
-  // Si ya tienes /pages/api/chat.ts, úsalo aquí. Si no, déjalo igual.
-  const sendMessage = async (text: string) => {
-    const r = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text }),
-    })
-    const data = await r.json().catch(() => ({}))
-    return data.reply ?? ''
+  const sendMessage = (text: string) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(text)
+    }
   }
 
-  return <Ctx.Provider value={{ socket, sendMessage }}>{children}</Ctx.Provider>
+  return (
+    <SocketCtx.Provider value={{ socket, sendMessage }}>
+      {children}
+    </SocketCtx.Provider>
+  )
 }
 
-export const useSocket = () => useContext(Ctx)
+export const useSocket = () => useContext(SocketCtx)
+
