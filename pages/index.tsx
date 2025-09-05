@@ -14,6 +14,7 @@ export default function Home() {
   const [inputMessage, setInputMessage] = useState('')
   const [isConnected, setIsConnected] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
   const { socket, sendMessage } = useSocket()
 
   const scrollToBottom = () => {
@@ -24,36 +25,55 @@ export default function Home() {
     scrollToBottom()
   }, [messages])
 
+  // 👇 Listeners para WebSocket nativo
   useEffect(() => {
-    if (socket) {
-      socket.on('connect', () => {
-        setIsConnected(true)
-        console.log('Conectado al servidor WebSocket')
-      })
+    if (!socket) return
 
-      socket.on('disconnect', () => {
-        setIsConnected(false)
-        console.log('Desconectado del servidor WebSocket')
-      })
+    const onOpen = () => {
+      setIsConnected(true)
+      console.log('Conectado al servidor WebSocket')
+    }
 
-      socket.on('bot-message', (data: { message: string }) => {
+    const onClose = () => {
+      setIsConnected(false)
+      console.log('Desconectado del servidor WebSocket')
+    }
+
+    const onMessage = (ev: MessageEvent) => {
+      try {
+        const data = JSON.parse(ev.data as string)
+        if (data?.type === 'bot-message') {
+          const newMessage: Message = {
+            id: Date.now().toString(),
+            text: data.message,
+            sender: 'bot',
+            timestamp: new Date()
+          }
+          setMessages(prev => [...prev, newMessage])
+        }
+      } catch {
         const newMessage: Message = {
           id: Date.now().toString(),
-          text: data.message,
+          text: String(ev.data),
           sender: 'bot',
           timestamp: new Date()
         }
         setMessages(prev => [...prev, newMessage])
-      })
-
-      return () => {
-        socket.off('connect')
-        socket.off('disconnect')
-        socket.off('bot-message')
       }
+    }
+
+    socket.addEventListener('open', onOpen)
+    socket.addEventListener('close', onClose)
+    socket.addEventListener('message', onMessage)
+
+    return () => {
+      socket.removeEventListener('open', onOpen)
+      socket.removeEventListener('close', onClose)
+      socket.removeEventListener('message', onMessage)
     }
   }, [socket])
 
+  // 👇 Manejo del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputMessage.trim()) return
@@ -64,20 +84,14 @@ export default function Home() {
       sender: 'user',
       timestamp: new Date()
     }
-
     setMessages(prev => [...prev, userMessage])
+
     const messageToSend = inputMessage
     setInputMessage('')
 
+    // Aquí solo enviamos, la respuesta llegará por onMessage
     try {
-      const botResponse = await sendMessage(messageToSend)
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: botResponse,
-        sender: 'bot',
-        timestamp: new Date()
-      }
-      setMessages(prev => [...prev, botMessage])
+      sendMessage(messageToSend)
     } catch (error) {
       console.error('Error enviando mensaje:', error)
       const errorMessage: Message = {
@@ -94,7 +108,10 @@ export default function Home() {
     <>
       <Head>
         <title>ChatBot con WebSocket</title>
-        <meta name="description" content="Chatbot con comunicación en tiempo real usando WebSocket" />
+        <meta
+          name="description"
+          content="Chatbot con comunicación en tiempo real usando WebSocket nativo en Vercel"
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
@@ -105,9 +122,13 @@ export default function Home() {
           <div className="max-w-4xl mx-auto px-4 py-4">
             <h1 className="text-2xl font-bold text-gray-800">ChatBot WebSocket</h1>
             <div className="flex items-center mt-2">
-              <div className={`w-3 h-3 rounded-full mr-2 ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+              <div
+                className={`w-3 h-3 rounded-full mr-2 ${
+                  isConnected ? 'bg-green-500' : 'bg-yellow-500'
+                }`}
+              ></div>
               <span className="text-sm text-gray-600">
-                {isConnected ? 'WebSocket Conectado' : 'Modo HTTP'}
+                {isConnected ? 'WebSocket Conectado' : 'Desconectado'}
               </span>
             </div>
           </div>
@@ -126,7 +147,9 @@ export default function Home() {
                 messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${
+                      message.sender === 'user' ? 'justify-end' : 'justify-start'
+                    }`}
                   >
                     <div
                       className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
@@ -136,9 +159,11 @@ export default function Home() {
                       }`}
                     >
                       <p className="text-sm">{message.text}</p>
-                      <p className={`text-xs mt-1 ${
-                        message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
-                      }`}>
+                      <p
+                        className={`text-xs mt-1 ${
+                          message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
+                        }`}
+                      >
                         {message.timestamp.toLocaleTimeString()}
                       </p>
                     </div>
@@ -150,7 +175,6 @@ export default function Home() {
 
             {/* Input Area */}
             <div className="border-t p-4">
-              {/* 👇 aquí también cambia el nombre */}
               <form onSubmit={handleSubmit} className="flex space-x-2">
                 <input
                   type="text"
@@ -175,5 +199,3 @@ export default function Home() {
     </>
   )
 }
-
-
